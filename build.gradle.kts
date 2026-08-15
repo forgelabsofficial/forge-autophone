@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    kotlin("plugin.serialization") version "2.0.0"
 }
 
 android {
@@ -48,6 +49,15 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Kotlinx Serialization for gesture recording
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // ML Kit for OCR
+    implementation(libs.mlkit.text.recognition)
+
+    // OpenCV for icon/image recognition
+    implementation(libs.opencv.android)
 
     // Testing
     testImplementation(libs.junit)

@@ -11,6 +11,8 @@ coroutines = "1.8.1"
 junit = "4.13.2"
 junitExt = "1.2.1"
 espressoCore = "3.6.1"
+mlkit = "16.0.0"
+opencv = "4.8.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -26,6 +28,8 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitExt" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkit" }
+opencv-android = { group = "org.opencv", name = "opencv", version.ref = "opencv" }
 
 [plugins]
 android-library = { id = "com.android.library", version.ref = "agp" }
