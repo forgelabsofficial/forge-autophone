@@ -18,7 +18,12 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+    versionCatalogs {
+        create("libs") {
+            from(files("gradle/libs.versions.toml"))
+        }
+    }
 }
 
 rootProject.name = "forge-autophone"
-include(":app")
+// Single-module library — root IS the module, no subproject include needed
