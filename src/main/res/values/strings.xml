@@ -1,0 +1,4 @@
+<resources>
+    <string name="autophone_service_label">Forge AutoPhone</string>
+    <string name="autophone_service_description">Forge OS accessibility layer for UI automation, gesture dispatch, and intelligent screen interaction.</string>
+</resources>

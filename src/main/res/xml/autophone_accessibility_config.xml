@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AutoPhone Accessibility Service configuration.
+    - eventTypes: ALL events so the service can inspect any UI change
+    - feedbackType: GENERIC (non-audible — this is a programmatic service, not a screen reader)
+    - flags: includeNotImportantViews so we can reach all nodes
+    - canRetrieveWindowContent: true is mandatory for rootInActiveWindow access
+    - canPerformGestures: true is mandatory for dispatchGesture()
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagReportViewIds|flagRequestTouchExplorationMode"
+    android:canPerformGestures="true"
+    android:canRequestFilterKeyEvents="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/autophone_service_description"
+    android:notificationTimeout="100"
+    android:settingsActivity="com.forge.autophone.ui.settings.PermissionSettingsActivity" />
