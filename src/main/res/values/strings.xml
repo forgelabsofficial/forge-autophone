@@ -1,4 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="autophone_service_label">Forge AutoPhone</string>
-    <string name="autophone_service_description">Forge OS accessibility layer for UI automation, gesture dispatch, and intelligent screen interaction.</string>
+    <string name="app_name">AutoPhone</string>
+    <string name="autophone_service_label">AutoPhone Accessibility</string>
+    <string name="autophone_service_description">AI-powered accessibility automation for Forge OS. Provides 78 tools for UI inspection, gesture control, OCR, and form automation.</string>
+    
+    <color name="ic_launcher_background">#1A1A1A</color>
 </resources>

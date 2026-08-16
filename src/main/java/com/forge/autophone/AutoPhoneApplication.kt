@@ -4,12 +4,18 @@ import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 /**
- * AutoPhone Application class.
- * Required by Hilt — triggers the Hilt component code generation.
- *
- * If forge-autophone is consumed as a library module by a host app,
- * the host app's Application class should use @HiltAndroidApp instead.
- * This class is for standalone module testing / demo builds only.
+ * AutoPhone Application Class
+ * 
+ * Main application entry point for the AutoPhone standalone app.
+ * Initializes Hilt dependency injection and sets up global app state.
  */
 @HiltAndroidApp
-class AutoPhoneApplication : Application()
+class AutoPhoneApplication : Application() {
+    
+    override fun onCreate() {
+        super.onCreate()
+        
+        // Application initialization
+        // All DI is handled by Hilt
+    }
+}

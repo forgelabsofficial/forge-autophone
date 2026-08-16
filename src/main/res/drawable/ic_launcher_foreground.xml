@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        android:translateX="10.8"
+        android:translateY="10.8">
+        <!-- Robot/Phone icon representing AutoPhone -->
+        <path
+            android:fillColor="#4CAF50"
+            android:pathData="M54,20
+                             C45,20 38,27 38,36
+                             L38,72
+                             C38,81 45,88 54,88
+                             C63,88 70,81 70,72
+                             L70,36
+                             C70,27 63,20 54,20
+                             Z" />
+        <!-- Screen -->
+        <path
+            android:fillColor="#81C784"
+            android:pathData="M44,32
+                             L64,32
+                             L64,60
+                             L44,60
+                             Z" />
+        <!-- Eyes/sensors -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M48,40
+                             C48,38.9 48.9,38 50,38
+                             C51.1,38 52,38.9 52,40
+                             C52,41.1 51.1,42 50,42
+                             C48.9,42 48,41.1 48,40
+                             Z" />
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M56,40
+                             C56,38.9 56.9,38 58,38
+                             C59.1,38 60,38.9 60,40
+                             C60,41.1 59.1,42 58,42
+                             C56.9,42 56,41.1 56,40
+                             Z" />
+        <!-- Button -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M52,65
+                             C52,63.9 52.9,63 54,63
+                             C55.1,63 56,63.9 56,65
+                             C56,66.1 55.1,67 54,67
+                             C52.9,67 52,66.1 52,65
+                             Z" />
+    </group>
+</vector>

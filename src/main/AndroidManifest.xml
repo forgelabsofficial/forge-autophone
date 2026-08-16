@@ -6,7 +6,40 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <application>
+    <application
+        android:name=".AutoPhoneApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AutoPhone">
+
+        <!-- Main Launcher Activity -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.AutoPhone">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+             AutoPhone AIDL Service
+             Provides remote access to AutoPhone tools for Forge OS integration.
+             Forge OS binds to this service to call automation methods.
+        -->
+        <service
+            android:name=".AutoPhoneService"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="com.forge.autophone.IAutoPhoneService" />
+            </intent-filter>
+        </service>
 
         <!--
              AutoPhone Accessibility Service
@@ -14,7 +47,7 @@
              and programmatic text input across any foreground app.
         -->
         <service
-            android:name="com.forge.autophone.AutoPhoneAccessibilityService"
+            android:name=".AutoPhoneAccessibilityService"
             android:exported="true"
             android:label="@string/autophone_service_label"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

@@ -1,4 +1,4 @@
-name: Android Build (AutoPhone Library)
+name: Android Build (AutoPhone App)
 
 on:
   push:
@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Build Release AAR (Library) ──────────────────────────────────────────────
+  # ── Build Release APK (Standalone App) ──────────────────────────────────────
   build:
-    name: Assemble release AAR
+    name: Assemble release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -41,7 +41,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build release AAR
+      - name: Build release APK
         # Use same flags as Forge OS for consistency
         # -Pkotlin.incremental=false forces full non-incremental compile
         # --no-daemon avoids daemon state issues
@@ -57,11 +57,11 @@ jobs:
           path: build-log.txt
           retention-days: 7
 
-      - name: Upload AAR artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: forge-autophone-release
-          path: build/outputs/aar/forge-autophone-release.aar
+          path: build/outputs/apk/release/forge-autophone-release-unsigned.apk
           if-no-files-found: error
           compression-level: 9
           retention-days: 30
