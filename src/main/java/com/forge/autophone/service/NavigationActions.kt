@@ -2,13 +2,6 @@ package com.forge.autophone.service
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
-import android.graphics.PixelFormat
-import android.hardware.display.DisplayManager
-import android.hardware.display.VirtualDisplay
-import android.media.ImageReader
-import android.media.projection.MediaProjection
-import android.os.Build
-import androidx.annotation.RequiresApi
 
 /**
  * NavigationActions — system-level navigation for the Forge OS accessibility layer.
@@ -17,6 +10,12 @@ import androidx.annotation.RequiresApi
  * clean, typed navigation primitives.
  */
 class NavigationActions(private val service: AccessibilityService) {
+
+    /**
+     * Screenshot service for MediaProjection-based capture.
+     * Must be initialized separately with user permission.
+     */
+    var screenshotService: ScreenshotService? = null
 
     fun back() = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
 
@@ -33,20 +32,34 @@ class NavigationActions(private val service: AccessibilityService) {
     /**
      * Take a screenshot and return as Bitmap.
      * 
-     * Note: This is a simplified implementation that triggers the system screenshot.
-     * For actual bitmap capture, MediaProjection API would be needed (requires user permission).
+     * If ScreenshotService is initialized (MediaProjection permission granted),
+     * uses that for high-quality capture. Otherwise, triggers system screenshot
+     * and returns a placeholder.
      * 
-     * Returns a placeholder 1x1 bitmap for now. Real implementation requires:
-     * 1. MediaProjection permission from user
-     * 2. ImageReader to capture screen content
-     * 3. Async callback handling
+     * To enable MediaProjection:
+     * 1. Create ScreenshotService
+     * 2. Request permission via requestScreenshotPermission()
+     * 3. Initialize with result
+     * 4. Set screenshotService property
+     * 
+     * @return Bitmap of screen, or 1x1 placeholder if MediaProjection not available
      */
     fun takeScreenshot(): Bitmap {
-        // Trigger system screenshot (this saves to gallery)
+        // Try MediaProjection-based capture if available
+        screenshotService?.let { service ->
+            if (service.isReady()) {
+                val bitmap = service.captureScreenshotSync()
+                if (bitmap != null) {
+                    return bitmap
+                }
+            }
+        }
+        
+        // Fallback: Trigger system screenshot (saves to gallery)
         service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
         
-        // Return placeholder bitmap
-        // TODO: Implement MediaProjection-based screenshot capture
+        // Return placeholder - for OCR/icon matching to work without MediaProjection,
+        // alternative approaches like AccessibilityNodeInfo tree analysis should be used
         return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
     }
 

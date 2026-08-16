@@ -59,5 +59,20 @@
                 android:resource="@xml/autophone_accessibility_config" />
         </service>
 
+        <!--
+             AutoPhone Notification Listener Service
+             Allows reading, dismissing, and replying to notifications.
+             Requires user to enable in Settings > Notifications > Notification Access.
+        -->
+        <service
+            android:name=".service.AutoPhoneNotificationListener"
+            android:exported="true"
+            android:label="AutoPhone Notifications"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

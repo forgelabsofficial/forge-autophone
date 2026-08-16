@@ -136,19 +136,48 @@ class AutoPhoneService : Service() {
         // ── Notification tools ────────────────────────────────────────────────
         
         override fun readNotifications(): String {
-            return successJson("[]", "Notification listener not yet implemented")
+            val listener = com.forge.autophone.service.AutoPhoneNotificationListener.instance
+            return if (listener != null) {
+                listener.readNotificationsJson()
+            } else {
+                errorJson("Notification listener not enabled. Enable in Settings > Notifications > Notification Access")
+            }
         }
         
         override fun dismissNotification(key: String): String {
-            return errorJson("Notification dismiss not yet implemented")
+            val listener = com.forge.autophone.service.AutoPhoneNotificationListener.instance
+            return if (listener != null) {
+                val success = listener.dismissNotification(key)
+                if (success) {
+                    successJson("Notification dismissed")
+                } else {
+                    errorJson("Failed to dismiss notification")
+                }
+            } else {
+                errorJson("Notification listener not enabled")
+            }
         }
         
         override fun replyToNotification(key: String, text: String): String {
-            return errorJson("Notification reply not yet implemented")
+            val listener = com.forge.autophone.service.AutoPhoneNotificationListener.instance
+            return if (listener != null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    val success = listener.replyToNotification(key, text)
+                    if (success) {
+                        successJson("Reply sent")
+                    } else {
+                        errorJson("Failed to send reply - notification may not support replies")
+                    }
+                } else {
+                    errorJson("Reply feature requires Android 7.0 (API 24) or higher")
+                }
+            } else {
+                errorJson("Notification listener not enabled")
+            }
         }
         
         override fun isNotificationListenerActive(): Boolean {
-            return false
+            return com.forge.autophone.service.AutoPhoneNotificationListener.instance != null
         }
         
         // ── Schedule lifecycle ────────────────────────────────────────────────
