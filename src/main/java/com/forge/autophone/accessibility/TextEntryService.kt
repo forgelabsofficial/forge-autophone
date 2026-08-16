@@ -71,8 +71,6 @@ class TextEntryService(private val service: AccessibilityService) {
         return result
     }
 
-    }
-
     /** Clear text in a node identified by view resource ID. */
     fun clearField(viewId: String) {
         typeIntoViewId("", viewId)
