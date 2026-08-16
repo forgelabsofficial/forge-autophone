@@ -31,20 +31,6 @@ android {
         }
     }
     
-    signingConfigs {
-        create("release") {
-            // Fall back to debug keystore for builds without keystore.properties
-            // This allows the app to install on devices for testing
-            val debugKeystore = File(System.getProperty("user.home"), ".android/debug.keystore")
-            if (debugKeystore.exists()) {
-                storeFile = debugKeystore
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            }
-        }
-    }
-    
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -52,7 +38,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            // Use debug signing for now (allows installation on any device)
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     
