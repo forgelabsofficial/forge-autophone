@@ -467,8 +467,6 @@ class AutoPhoneToolRegistry(private val service: AutoPhoneAccessibilityService) 
         val snapshot = com.forge.autophone.inspector.UITreeInspector(service).snapshot()
         service.uiTreeDiffer.updateBaseline(snapshot)
     }
-}
-
 
     // ── Self-healing selector tools (NEW - Phase 4) ──────────────────────────
 
@@ -694,3 +692,4 @@ class AutoPhoneToolRegistry(private val service: AutoPhoneAccessibilityService) 
      */
     fun clearTelemetry() =
         service.telemetry.clear()
+}
