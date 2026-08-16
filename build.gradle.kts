@@ -81,8 +81,8 @@ dependencies {
     // ML Kit for OCR
     implementation(libs.mlkit.text.recognition)
 
-    // OpenCV for icon/image recognition
-    implementation(libs.opencv.android)
+    // OpenCV for icon/image recognition (Phase 2)
+    implementation(libs.opencv)
 
     // Testing
     testImplementation(libs.junit)
