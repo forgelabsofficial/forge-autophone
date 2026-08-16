@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -36,7 +38,7 @@ android {
             // Reads from keystore.properties if it exists (for production signing)
             val propsFile = rootProject.file("keystore.properties")
             if (propsFile.exists()) {
-                val props = java.util.Properties()
+                val props = Properties()
                 props.load(propsFile.inputStream())
                 storeFile = file(props.getProperty("storeFile"))
                 storePassword = props.getProperty("storePassword")
