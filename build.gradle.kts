@@ -31,6 +31,32 @@ android {
         }
     }
     
+    signingConfigs {
+        create("release") {
+            // Reads from keystore.properties if it exists (for production signing)
+            val propsFile = rootProject.file("keystore.properties")
+            if (propsFile.exists()) {
+                val props = java.util.Properties()
+                propsFile.inputStream().use { props.load(it) }
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            } else {
+                // Fallback to debug keystore for development builds
+                // The resulting APK won't update an existing signed install
+                // but is fine for local testing
+                val debugKeystore = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                if (debugKeystore.exists()) {
+                    storeFile = debugKeystore
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
+            }
+        }
+    }
+    
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -38,8 +64,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Use debug signing for now (allows installation on any device)
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     
