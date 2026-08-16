@@ -43,6 +43,7 @@ android {
 
     buildFeatures {
         compose = true
+        aidl = true
     }
 
     compileOptions {
@@ -77,6 +78,9 @@ dependencies {
 
     // Kotlinx Serialization for gesture recording
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Timber logging
+    implementation(libs.timber)
 
     // ML Kit for OCR
     implementation(libs.mlkit.text.recognition)
