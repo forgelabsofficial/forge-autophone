@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.application")  // Changed from library to application
+    alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
