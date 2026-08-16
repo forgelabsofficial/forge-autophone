@@ -19,8 +19,9 @@ object AidlToolMapper {
      */
     fun findAndClickText(registry: AutoPhoneToolRegistry, text: String): String {
         return try {
-            val node = registry.findByText(text)
-            if (node != null) {
+            val nodes = registry.findByText(text)
+            if (nodes.isNotEmpty()) {
+                val node = nodes.first()
                 val bounds = android.graphics.Rect()
                 node.getBoundsInScreen(bounds)
                 val centerX = (bounds.left + bounds.right) / 2f

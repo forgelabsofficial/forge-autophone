@@ -50,9 +50,12 @@ class AutoPhoneToolRegistry(private val service: AutoPhoneAccessibilityService) 
 
     // ── Inspection tools ─────────────────────────────────────────────────────
 
-    fun findById(viewId: String) = service.findById(viewId)
-    fun findByText(text: String) = service.findByText(text)
-    fun getActiveWindowRoot() = service.getActiveWindowRoot()
+    fun findById(viewId: String): List<android.view.accessibility.AccessibilityNodeInfo> = 
+        service.findById(viewId)
+    fun findByText(text: String): List<android.view.accessibility.AccessibilityNodeInfo> = 
+        service.findByText(text)
+    fun getActiveWindowRoot(): android.view.accessibility.AccessibilityNodeInfo? = 
+        service.getActiveWindowRoot()
 
     // ── OCR tools (NEW - Phase 1) ────────────────────────────────────────────
 
