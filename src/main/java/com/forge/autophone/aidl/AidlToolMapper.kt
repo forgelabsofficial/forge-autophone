@@ -21,10 +21,12 @@ object AidlToolMapper {
         return try {
             val node = registry.findByText(text)
             if (node != null) {
-                val bounds = node.bounds
+                val bounds = android.graphics.Rect()
+                node.getBoundsInScreen(bounds)
                 val centerX = (bounds.left + bounds.right) / 2f
                 val centerY = (bounds.top + bounds.bottom) / 2f
                 registry.tap(centerX, centerY)
+                node.recycle()
                 successJson("Clicked on '$text'")
             } else {
                 errorJson("Text '$text' not found")

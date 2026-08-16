@@ -28,10 +28,14 @@ class TextEntryService(private val service: AccessibilityService) {
      * Useful when the view ID is unknown.
      */
     fun typeIntoFocusedField(text: String) {
-        val nodes = service.rootInActiveWindow
-            ?.findAccessibilityNodeInfosByClassName("android.widget.EditText")
-            ?: return
-        nodes.firstOrNull()?.let { setTextOnNode(it, text) }
+        val root = service.rootInActiveWindow ?: return
+        // Find EditText nodes by traversing the tree
+        val editTextNodes = findNodesByClassName(root, "android.widget.EditText")
+        editTextNodes.firstOrNull()?.let { 
+            setTextOnNode(it, text)
+            it.recycle()
+        }
+        editTextNodes.forEach { if (it != editTextNodes.firstOrNull()) it.recycle() }
     }
 
     /**
@@ -42,7 +46,31 @@ class TextEntryService(private val service: AccessibilityService) {
         val nodes = service.rootInActiveWindow
             ?.findAccessibilityNodeInfosByText(hint)
             ?: return
-        nodes.firstOrNull()?.let { setTextOnNode(it, text) }
+        nodes.firstOrNull()?.let { 
+            setTextOnNode(it, text)
+        }
+        nodes.forEach { it.recycle() }
+    }
+    
+    /**
+     * Helper to find nodes by class name (replacement for deprecated method)
+     */
+    private fun findNodesByClassName(root: android.view.accessibility.AccessibilityNodeInfo, className: String): List<android.view.accessibility.AccessibilityNodeInfo> {
+        val result = mutableListOf<android.view.accessibility.AccessibilityNodeInfo>()
+        
+        fun traverse(node: android.view.accessibility.AccessibilityNodeInfo) {
+            if (node.className?.toString() == className) {
+                result.add(node)
+            }
+            for (i in 0 until node.childCount) {
+                node.getChild(i)?.let { traverse(it) }
+            }
+        }
+        
+        traverse(root)
+        return result
+    }
+
     }
 
     /** Clear text in a node identified by view resource ID. */

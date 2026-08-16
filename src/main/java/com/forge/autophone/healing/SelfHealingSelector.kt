@@ -207,9 +207,7 @@ class SelfHealingSelector(private val service: AutoPhoneAccessibilityService) {
         total++
         if (ref.isEditable == candidate.isEditable) matches++
         
-        // Scrollable
-        total++
-        if (ref.isScrollable == candidate.isScrollable) matches++
+        // Note: isScrollable removed as it's not in NodeSnapshot
         
         return matches.toDouble() / total
     }

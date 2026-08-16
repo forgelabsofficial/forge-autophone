@@ -33,12 +33,12 @@ class OcrTextExtractor {
                         OcrTextBlock(
                             text = block.text,
                             bounds = block.boundingBox ?: Rect(),
-                            confidence = block.confidence ?: 0f,
+                            confidence = 1.0f, // MLKit Text API v2 doesn't expose confidence per block
                             lines = block.lines.map { line ->
                                 OcrTextLine(
                                     text = line.text,
                                     bounds = line.boundingBox ?: Rect(),
-                                    confidence = line.confidence ?: 0f
+                                    confidence = 1.0f // MLKit Text API v2 doesn't expose confidence per line
                                 )
                             }
                         )

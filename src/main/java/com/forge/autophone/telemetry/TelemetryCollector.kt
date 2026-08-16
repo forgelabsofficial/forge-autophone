@@ -225,9 +225,9 @@ class TelemetryCollector {
      * Get real-time performance snapshot.
      */
     fun getRealTimeSnapshot(): RealTimeSnapshot {
-        val recentMetrics = metrics.takeLast(10).toList()
+        val recentMetrics = metrics.toList().takeLast(10)
         val recentSuccessRate = if (recentMetrics.isNotEmpty()) {
-            recentMetrics.count { it.success }.toDouble() / recentMetrics.size
+            recentMetrics.count { it.success }.toDouble() / recentMetrics.size.toDouble()
         } else 0.0
         
         val recentAvgDuration = if (recentMetrics.isNotEmpty()) {
@@ -287,7 +287,7 @@ class ErrorTracker {
             errorsByType = errorTypeBreakdown,
             toolsWithErrors = toolsWithErrors,
             mostCommonError = mostCommonError,
-            recentErrors = errors.takeLast(10).toList()
+            recentErrors = errors.toList().takeLast(10)
         )
     }
     

@@ -68,6 +68,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.hilt.navigation.compose)
+    
+    // Compose Material Icons Extended (for Accessibility, LayersClear icons)
+    implementation("androidx.compose.material:material-icons-extended")
 
     // Hilt DI
     implementation(libs.hilt.android)
