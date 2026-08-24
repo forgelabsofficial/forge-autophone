@@ -17,6 +17,7 @@ import com.forge.autophone.verification.ActionVerifier
 import com.forge.autophone.vision.IconMatcher
 import com.forge.autophone.wait.SmartWaiter
 import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -115,27 +116,39 @@ class AutoPhoneAccessibilityService : AccessibilityService() {
             notificationTimeout = 100
         }
 
-        gestureHandler = GestureHandler(this)
-        textEntry = TextEntryService(this)
-        navigation = NavigationActions(this)
-        eventBus = UIEventBus()
-        smartWaiter = SmartWaiter(this)
-        scrollHelper = ScrollHelper(this)
-        ocrExtractor = OcrTextExtractor()
-        iconMatcher = IconMatcher(applicationContext)
-        appContextTracker = AppContextTracker(this)
-        actionVerifier = ActionVerifier(this)
-        uiTreeDiffer = UITreeDiffer(this)
-        selfHealingSelector = com.forge.autophone.healing.SelfHealingSelector(this)
-        gestureRecorder = com.forge.autophone.recording.GestureRecorder(this)
-        gesturePlayer = com.forge.autophone.recording.GesturePlayer(this)
-        gestureLibrary = com.forge.autophone.recording.GestureLibrary()
-        formAutomation = com.forge.autophone.form.AdvancedFormAutomation(this)
-        screenAI = com.forge.autophone.vision.ScreenAIInterface(this)
-        telemetry = com.forge.autophone.telemetry.TelemetryCollector()
-
-        // Expose singleton reference for tool registry and inspector
+        // CRITICAL: expose the singleton BEFORE any subsystem init. Forge OS
+        // gates every AIDL tool on AutoPhoneAccessibilityService.instance and
+        // reports "Accessibility service not enabled" when it is null. Setting
+        // it first means a subsystem failure can never leave Forge OS seeing
+        // a dead service (which previously surfaced as "failed" right after
+        // the user granted accessibility, while the service crash-looped).
         instance = this
+
+        // Subsystem init is contained: OCR (ML Kit) and IconMatcher (OpenCV)
+        // are hardened inside their own classes to degrade gracefully, and any
+        // unexpected failure here is logged instead of crashing the service.
+        try {
+            gestureHandler = GestureHandler(this)
+            textEntry = TextEntryService(this)
+            navigation = NavigationActions(this)
+            eventBus = UIEventBus()
+            smartWaiter = SmartWaiter(this)
+            scrollHelper = ScrollHelper(this)
+            ocrExtractor = OcrTextExtractor()
+            iconMatcher = IconMatcher(applicationContext)
+            appContextTracker = AppContextTracker(this)
+            actionVerifier = ActionVerifier(this)
+            uiTreeDiffer = UITreeDiffer(this)
+            selfHealingSelector = com.forge.autophone.healing.SelfHealingSelector(this)
+            gestureRecorder = com.forge.autophone.recording.GestureRecorder(this)
+            gesturePlayer = com.forge.autophone.recording.GesturePlayer(this)
+            gestureLibrary = com.forge.autophone.recording.GestureLibrary()
+            formAutomation = com.forge.autophone.form.AdvancedFormAutomation(this)
+            screenAI = com.forge.autophone.vision.ScreenAIInterface(this)
+            telemetry = com.forge.autophone.telemetry.TelemetryCollector()
+        } catch (t: Throwable) {
+            Timber.e(t, "AutoPhone: subsystem init failed - service stays connected")
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {

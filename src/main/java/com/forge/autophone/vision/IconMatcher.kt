@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Point
 import org.opencv.android.Utils
+import timber.log.Timber
 import org.opencv.core.*
 import org.opencv.imgproc.Imgproc
 
@@ -19,10 +20,18 @@ import org.opencv.imgproc.Imgproc
 class IconMatcher(private val context: Context) {
     
     private val templates = mutableMapOf<String, Mat>()
-    
-    init {
-        // Initialize OpenCV (must be called before any OpenCV operations)
+
+    /**
+     * OpenCV availability. Init is guarded: if the native library is missing
+     * for this ABI, icon matching degrades to empty results instead of
+     * crashing the accessibility service at connect time.
+     */
+    private val openCvAvailable: Boolean = runCatching {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+        true
+    }.getOrElse {
+        Timber.w(it, "OpenCV unavailable - icon matching tools disabled")
+        false
     }
 
     /**
@@ -33,6 +42,7 @@ class IconMatcher(private val context: Context) {
      * @param templateBitmap Bitmap of the icon to match against
      */
     fun registerIcon(name: String, templateBitmap: Bitmap) {
+        if (!openCvAvailable) return
         templates[name] = bitmapToMat(templateBitmap)
     }
 
@@ -67,6 +77,7 @@ class IconMatcher(private val context: Context) {
      * @return Location of the icon (top-left corner) and confidence, or null if not found
      */
     fun findIcon(name: String, screenshot: Bitmap, threshold: Double = 0.8): IconMatch? {
+        if (!openCvAvailable) return null
         val template = templates[name] ?: return null
         val screen = bitmapToMat(screenshot)
         
@@ -106,6 +117,7 @@ class IconMatcher(private val context: Context) {
         threshold: Double = 0.8,
         maxMatches: Int = 10
     ): List<IconMatch> {
+        if (!openCvAvailable) return emptyList()
         val template = templates[name] ?: return emptyList()
         val screen = bitmapToMat(screenshot)
         
@@ -150,6 +162,7 @@ class IconMatcher(private val context: Context) {
         threshold: Double = 0.8,
         scales: List<Double> = listOf(0.5, 0.75, 1.0, 1.25, 1.5)
     ): IconMatch? {
+        if (!openCvAvailable) return null
         val template = templates[name] ?: return null
         var bestMatch: IconMatch? = null
         

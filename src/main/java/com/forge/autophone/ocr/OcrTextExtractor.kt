@@ -4,8 +4,10 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.TextRecognizer
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
+import timber.log.Timber
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -17,17 +19,29 @@ import kotlin.coroutines.resumeWithException
  * accessibility support (games, custom UIs, image-heavy content).
  */
 class OcrTextExtractor {
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+    /**
+     * ML Kit (Play-Services-backed) OCR. Init is guarded so a device without
+     * Google Play Services, or with an incompatible version, degrades to empty
+     * OCR results instead of crashing the accessibility service at connect time.
+     */
+    private val recognizer: TextRecognizer? = runCatching {
+        TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    }.getOrElse {
+        Timber.w(it, "ML Kit OCR unavailable - OCR tools will return empty results")
+        null
+    }
 
     /**
      * Extract all visible text from a screenshot.
      * Returns text blocks with bounding boxes and confidence scores.
      */
     suspend fun extractText(screenshot: Bitmap): List<OcrTextBlock> {
+        val rec = recognizer ?: return emptyList()
         return suspendCancellableCoroutine { continuation ->
             val image = InputImage.fromBitmap(screenshot, 0)
             
-            recognizer.process(image)
+            rec.process(image)
                 .addOnSuccessListener { visionText ->
                     val blocks = visionText.textBlocks.map { block ->
                         OcrTextBlock(
@@ -91,7 +105,7 @@ class OcrTextExtractor {
      * Clean up resources when done.
      */
     fun close() {
-        recognizer.close()
+        recognizer?.close()
     }
 }
 
