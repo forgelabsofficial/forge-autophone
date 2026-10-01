@@ -20,6 +20,9 @@ jobs:
       - name: Verify IAutoPhoneService.aidl matches the Forge OS copy
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Querying the contents endpoint for a branch name can serve a stale
+          # blob, so resolve the remote ref to a SHA first.
+          AIDL_REMOTE_REF: main
         run: |
           chmod +x scripts/check_aidl_sync.sh
           ./scripts/check_aidl_sync.sh

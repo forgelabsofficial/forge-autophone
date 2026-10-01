@@ -16,6 +16,9 @@ set -euo pipefail
 LOCAL="src/main/aidl/com/forge/autophone/IAutoPhoneService.aidl"
 REMOTE_REPO="${AIDL_REMOTE_REPO:-theking196/forge-os}"
 REMOTE_PATH="app/src/main/aidl/com/forge/autophone/IAutoPhoneService.aidl"
+# Pin to a specific ref. Querying the branch head can return a stale cached
+# blob: this check first reported drift because the contents API served an old# 1832-byte copy for main while the file at the HEAD commit was already correct.
+REMOTE_REF="${AIDL_REMOTE_REF:-main}"
 
 strip() {
   grep -vE '^\s*(//|/\*|\*)' "$1" | sed -e 's/[[:space:]]*$//' | grep -v '^[[:space:]]*$'
@@ -31,7 +34,7 @@ trap 'rm -f "$TMP"' EXIT
 
 # Fetch the remote copy; skip the check rather than fail the build if the
 # network or token is unavailable.
-if gh api "repos/${REMOTE_REPO}/contents/${REMOTE_PATH}" --jq '.content' 2>/dev/null \
+if gh api "repos/${REMOTE_REPO}/contents/${REMOTE_PATH}?ref=${REMOTE_REF}" --jq '.content' 2>/dev/null \
    | base64 --decode > "$TMP" 2>/dev/null && [ -s "$TMP" ]; then
   :
 else
