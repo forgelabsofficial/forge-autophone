@@ -357,9 +357,10 @@ class AutoPhoneToolRegistry(private val service: AutoPhoneAccessibilityService) 
         val c = getCurrentAppContext()
             ?: return """{"ok":false,"error":"no context available"}"""
         val patterns = c.uiPatterns.joinToString(",") { "\"${it.name}\"" }
-        return """{"ok":true,"packageName":"${c.packageName}","appName":"${c.appName}",
-            """"activityName":"${c.activityName}","screenType":"${c.screenType}",
-            """"patterns":[$patterns],"confidence":${c.confidence}}"""
+        val esc = { s: String -> s.toString().replace("\\", "\\\\").replace("\"", "\\\"") }
+        return "{\"ok\":true,\"packageName\":\"${esc(c.packageName)}\",\"appName\":\"${esc(c.appName)}\",
+            "\"activityName\":\"${esc(c.activityName)}\",\"screenType\":\"${c.screenType}\",
+            "\"patterns\":[$patterns],\"confidence\":${c.confidence}}"
     }
     /**
      * Get detected form fields with their types.
