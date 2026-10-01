@@ -11,12 +11,6 @@ import android.graphics.Bitmap
  */
 class NavigationActions(private val service: AccessibilityService) {
 
-    /**
-     * Screenshot service for MediaProjection-based capture.
-     * Must be initialized separately with user permission.
-     */
-    var screenshotService: ScreenshotService? = null
-
     fun back() = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
 
     fun home() = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
@@ -30,37 +24,45 @@ class NavigationActions(private val service: AccessibilityService) {
     fun lockScreen() = service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
 
     /**
-     * Take a screenshot and return as Bitmap.
-     * 
-     * If ScreenshotService is initialized (MediaProjection permission granted),
-     * uses that for high-quality capture. Otherwise, triggers system screenshot
-     * and returns a placeholder.
-     * 
-     * To enable MediaProjection:
-     * 1. Create ScreenshotService
-     * 2. Request permission via requestScreenshotPermission()
-     * 3. Initialize with result
-     * 4. Set screenshotService property
-     * 
-     * @return Bitmap of screen, or 1x1 placeholder if MediaProjection not available
+     * Take a screenshot of the current screen.
+     *
+     * Requires MediaProjection consent, which the user grants from the
+     * "Screen & Background" card in MainActivity; the live instance is shared
+     * through [ScreenshotHub].
+     *
+     * @return Bitmap of the screen
+     * @throws IllegalStateException when capture consent has not been granted.
+     *   Callers should prefer the accessibility tree (get_tree / find_by_text)
+     *   for text - it needs no capture permission and is far cheaper.
      */
     fun takeScreenshot(): Bitmap {
-        // Try MediaProjection-based capture if available
-        screenshotService?.let { service ->
-            if (service.isReady()) {
-                val bitmap = service.captureScreenshotSync()
-                if (bitmap != null) {
-                    return bitmap
-                }
-            }
+        // The shared ScreenshotService is registered by MainActivity once the
+        // user grants MediaProjection consent. This used to read a local
+        // `screenshotService` property that nothing ever assigned, so every
+        // call fell through to the placeholder below and OCR silently
+        // returned nothing.
+        ScreenshotHub.readyService()?.let { capture ->
+            capture.captureScreenshotSync()?.let { return it }
         }
-        
-        // Fallback: Trigger system screenshot (saves to gallery)
-        service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_TAKE_SCREENSHOT)
-        
-        // Return placeholder - for OCR/icon matching to work without MediaProjection,
-        // alternative approaches like AccessibilityNodeInfo tree analysis should be used
-        return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+
+        // No projection available.
+        //
+        // The previous fallback called GLOBAL_ACTION_TAKE_SCREENSHOT - which
+        // saves a copy into the user's gallery - and then returned a 1x1
+        // blank bitmap. That had two bad properties: it polluted the gallery
+        // every time a tool asked for the screen, and it made the failure
+        // look like "the screen is empty" rather than "capture is not set up".
+        //
+        // Screen content that apps expose to accessibility does not need pixels
+        // at all - use getActiveWindowRoot()/findByText() for that. So the
+        // honest answer here is to throw and let the caller report a real
+        // reason.
+        throw IllegalStateException(
+            "Screen capture unavailable: MediaProjection consent not granted. " +
+                "Ask the user to open AutoPhone and allow Screen capture in the " +
+                "'Screen & Background' card. For text, prefer the accessibility " +
+                "tree (get_tree/find_by_text) which needs no capture permission."
+        )
     }
 
     /** Perform any action by its raw [GlobalAction] enum. */

@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.PowerManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import com.forge.autophone.service.ScreenshotHub
 import com.forge.autophone.service.ScreenshotService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -52,6 +53,10 @@ class MainActivity : ComponentActivity() {
         captureGranted = result.resultCode == RESULT_OK &&
             result.data != null &&
             screenshotService.initialize(result.resultCode, result.data)
+
+        // Share the live instance with the accessibility service, which is a
+        // different component and previously had no way to reach it.
+        if (captureGranted) ScreenshotHub.set(screenshotService) else ScreenshotHub.clear()
     }
 
     /** Android 13+ prompt so the foreground-service notification can show. */
@@ -103,7 +108,7 @@ class MainActivity : ComponentActivity() {
         // The user may have just returned from Settings having enabled the
         // accessibility service, so re-read both grants on every resume.
         serviceEnabled = appContext.isAccessibilityServiceEnabled()
-        captureGranted = screenshotService.isReady()
+        captureGranted = ScreenshotHub.isReady()
     }
 
     private fun openAccessibilitySettings() {

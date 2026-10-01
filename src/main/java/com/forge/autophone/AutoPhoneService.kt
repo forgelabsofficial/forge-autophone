@@ -41,7 +41,15 @@ class AutoPhoneService : Service() {
     private fun <T> withToolRegistry(operation: (AutoPhoneToolRegistry) -> T, onError: () -> T): T {
         val registry = getToolRegistry()
         return if (registry != null) {
-            operation(registry)
+            try {
+                operation(registry)
+            } catch (t: Throwable) {
+                // Tool implementations may throw - e.g. screen capture without
+                // MediaProjection consent. Never let that cross the AIDL
+                // boundary as a raw RemoteException; report it as a tool error.
+                Timber.e(t, "AutoPhone tool failed")
+                onError()
+            }
         } else {
             onError()
         }
