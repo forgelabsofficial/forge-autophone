@@ -1,5 +1,16 @@
 package com.forge.autophone.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.forge.autophone.service.ScreenshotService
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import timber.log.Timber
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -14,11 +25,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -32,10 +40,45 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
+
+    /**
+     * MediaProjection capture consent. This is the single source of Bitmaps for
+     * every vision tool (OCR, icon matching, screen AI) - without it those tools
+     * silently return nothing.
+     */
+    private val requestCapture = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        captureGranted = result.resultCode == RESULT_OK &&
+            result.data != null &&
+            screenshotService.initialize(result.resultCode, result.data)
+    }
+
+    /** Android 13+ prompt so the foreground-service notification can show. */
+    private val requestNotifications = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* the service still runs even if this is denied */ }
+
+    @Inject
+    @ApplicationContext
+    lateinit var appContext: Context
+
+    private lateinit var screenshotService: ScreenshotService
+
+    private var captureGranted by mutableStateOf(false)
+    private var serviceEnabled by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        screenshotService = ScreenshotService(appContext)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         setContent {
             AutoPhoneTheme {
                 Surface(
@@ -43,16 +86,68 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(
-                        onOpenAccessibilitySettings = ::openAccessibilitySettings
+                        isServiceEnabled = serviceEnabled,
+                        isCaptureGranted = captureGranted,
+                        isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations(),
+                        onOpenAccessibilitySettings = ::openAccessibilitySettings,
+                        onRequestScreenCapture = ::requestScreenCapture,
+                        onOpenBatterySettings = ::requestIgnoreBatteryOptimizations,
                     )
                 }
             }
         }
     }
-    
+
+    override fun onResume() {
+        super.onResume()
+        // The user may have just returned from Settings having enabled the
+        // accessibility service, so re-read both grants on every resume.
+        serviceEnabled = appContext.isAccessibilityServiceEnabled()
+        captureGranted = screenshotService.isReady()
+    }
+
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
+
+    /** Launch the system screen-capture consent dialog. */
+    private fun requestScreenCapture() {
+        try {
+            requestCapture.launch(screenshotService.requestScreenshotPermission())
+        } catch (e: Exception) {
+            Timber.e(e, "Could not request screen capture")
+        }
+    }
+
+    /**
+     * Ask to be exempt from battery optimisation.
+     *
+     * An automation tool is backgrounded almost all of the time, and OEMs like
+     * Xiaomi/Oppo/Huawei kill long-running accessibility services without this.
+     * That is a common cause of "it worked for a while, then stopped".
+     */
+    private fun requestIgnoreBatteryOptimizations() {
+        if (isIgnoringBatteryOptimizations()) return
+        try {
+            startActivity(
+                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+            )
+        } catch (e: Exception) {
+            // Not every OEM exposes the direct request; fall back to the list.
+            runCatching {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
+            Timber.e(e, "Direct battery-optimisation request unavailable")
+        }
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean =
+        runCatching {
+            getSystemService(PowerManager::class.java)
+                ?.isIgnoringBatteryOptimizations(packageName) ?: false
+        }.getOrDefault(false)
 }
 
 /**
@@ -75,28 +170,13 @@ fun Context.isAccessibilityServiceEnabled(): Boolean {
 
 @Composable
 fun MainScreen(
-    onOpenAccessibilitySettings: () -> Unit
+    isServiceEnabled: Boolean,
+    isCaptureGranted: Boolean,
+    isIgnoringBatteryOptimizations: Boolean,
+    onRequestScreenCapture: () -> Unit,
+    onOpenBatterySettings: () -> Unit,
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    
-    // Track service status with lifecycle awareness
-    var isServiceEnabled by remember { mutableStateOf(context.isAccessibilityServiceEnabled()) }
-    
-    // Update status when app resumes (user returns from Settings)
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isServiceEnabled = context.isAccessibilityServiceEnabled()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -127,6 +207,20 @@ fun MainScreen(
             onOpenAccessibilitySettings = onOpenAccessibilitySettings
         )
         
+        Spacer(modifier = Modifier.height(24.dp))
+Spacer(modifier = Modifier.height(24.dp))
+
+        // Screen capture + background running. Without these the vision tools
+        // (OCR, icon matching) have no way to obtain a Bitmap, and the
+        // accessibility service gets killed once the app is backgrounded.
+        PermissionCard(
+            isCaptureGranted = isCaptureGranted,
+            isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
+            onRequestScreenCapture = onRequestScreenCapture,
+            onOpenBatterySettings = onOpenBatterySettings,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Spacer(modifier = Modifier.height(24.dp))
         
         // Forge OS Integration Card
@@ -468,4 +562,114 @@ fun dynamicDarkColorScheme(): ColorScheme {
         secondary = MaterialTheme.colorScheme.secondary,
         tertiary = MaterialTheme.colorScheme.tertiary
     )
+}
+
+/**
+ * Screen capture + background running.
+ *
+ * These two grants are what make AutoPhone actually usable rather than
+ * merely installed:
+ *
+ *  - **Screen capture** — every vision tool (OCR, icon matching, screen AI)
+ *    takes a `Bitmap`, and MediaProjection is the only source of one. Without
+ *    it those tools return nothing at all, with no obvious error.
+ *  - **Background running** — an automation tool is backgrounded almost always.
+ *    Aggressive OEMs kill the accessibility service (and with it any live
+ *    projection) unless the app is exempt from battery optimisation.
+ */
+@Composable
+fun PermissionCard(
+    isCaptureGranted: Boolean,
+    isIgnoringBatteryOptimizations: Boolean,
+    onRequestScreenCapture: () -> Unit,
+    onOpenBatterySettings: () -> Unit,
+) {
+    val allGranted = isCaptureGranted && isIgnoringBatteryOptimizations
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (allGranted) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            }
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Screen & Background",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = if (allGranted) {
+                    "Everything AutoPhone needs is granted."
+                } else {
+                    "Grant both so AutoPhone can read the screen while running in the background."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PermissionRow(
+                label = "Screen capture",
+                granted = isCaptureGranted,
+                actionLabel = "Allow",
+                onClick = onRequestScreenCapture
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            PermissionRow(
+                label = "Background running",
+                granted = isIgnoringBatteryOptimizations,
+                actionLabel = "Allow",
+                onClick = onOpenBatterySettings
+            )
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(
+    label: String,
+    granted: Boolean,
+    actionLabel: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (granted) "✅" else "⭕",
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+
+        if (granted) {
+            Text(
+                text = "Granted",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        } else {
+            Button(onClick = onClick, contentPadding = PaddingValues(horizontal = 16.dp)) {
+                Text(actionLabel)
+            }
+        }
+    }
 }

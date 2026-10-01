@@ -75,7 +75,32 @@ class ScreenshotService(private val context: Context) {
         
         try {
             val manager = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+
+            // Android 14+ refuses to hand out a projection token unless a
+            // foreground service of type mediaProjection is already running.
+            // Start it first; tolerated on failure because older releases work
+            // without it.
+            ScreenshotProjectionService.start(context)
+
             mediaProjection = manager.getMediaProjection(resultCode, data)
+
+            // Android 14+ requires the callback to be registered BEFORE
+            // createVirtualDisplay, otherwise the projection throws.
+            val projection = mediaProjection
+            if (projection != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                projection.registerCallback(
+                    object : MediaProjection.Callback() {
+                        override fun onStop() {
+                            // Revoked by the user or the system - tear down so
+                            // callers see a clean "not ready" instead of a
+                            // projection that silently yields no frames.
+                            release()
+                            Timber.w("MediaProjection stopped by the system")
+                        }
+                    },
+                    Handler(Looper.getMainLooper()),
+                )
+            }
             
             // Setup ImageReader
             imageReader = ImageReader.newInstance(
@@ -216,6 +241,7 @@ class ScreenshotService(private val context: Context) {
         virtualDisplay = null
         imageReader = null
         mediaProjection = null
+        ScreenshotProjectionService.stop(context)
         
         Timber.i("Screenshot service released")
     }

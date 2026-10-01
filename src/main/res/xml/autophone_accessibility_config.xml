@@ -3,14 +3,18 @@
     AutoPhone Accessibility Service configuration.
     - eventTypes: ALL events so the service can inspect any UI change
     - feedbackType: GENERIC (non-audible — this is a programmatic service, not a screen reader)
-    - flags: includeNotImportantViews so we can reach all nodes
+    - flags: includeNotImportantViews so we can reach all nodes, and reportViewIds for
+      stable resource-id selectors. We deliberately do NOT request
+      flagRequestTouchExplorationMode: it makes the service consume every touch
+      (TalkBack semantics), breaking normal interaction and fighting our own
+      dispatchGesture() calls.
     - canRetrieveWindowContent: true is mandatory for rootInActiveWindow access
     - canPerformGestures: true is mandatory for dispatchGesture()
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeAllMask"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagIncludeNotImportantViews|flagReportViewIds|flagRequestTouchExplorationMode"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagReportViewIds"
     android:canPerformGestures="true"
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="true"

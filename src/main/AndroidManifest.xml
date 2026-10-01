@@ -5,6 +5,16 @@
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Screen capture. Required for OCR / icon-matching / vision tools: they
+         take a Bitmap, and the only way to get one is MediaProjection. -->
+    <uses-permission android:name="android.permission.MEDIA_PROJECTION" />
+    <!-- Android 13+ runtime permission for the service status notification. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 14 (API 34) requires an explicit type for every foreground
+         service; mediaProjection services must declare it here and in the
+         service declaration. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".AutoPhoneApplication"
@@ -73,6 +83,18 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!--
+             Screen-capture foreground service.
+             Android 14+ requires a foreground service of type mediaProjection
+             before MediaProjection tokens can be used, and the service must be
+             running for the projection to keep working once the user leaves the
+             app. Started by ScreenshotService after the user grants capture.
+        -->
+        <service
+            android:name=".service.ScreenshotProjectionService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
 
     </application>
 </manifest>
