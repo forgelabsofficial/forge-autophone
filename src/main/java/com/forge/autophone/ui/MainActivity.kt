@@ -175,6 +175,7 @@ fun MainScreen(
     isIgnoringBatteryOptimizations: Boolean,
     onRequestScreenCapture: () -> Unit,
     onOpenBatterySettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Unit,
 ) {
     val context = LocalContext.current
     Column(
