@@ -4,6 +4,8 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import com.forge.autophone.aidl.AidlToolMapper
+import com.forge.autophone.aidl.ScreenshotEncoder
+import com.forge.autophone.service.ScreenshotHub
 import com.forge.autophone.toolregistry.AutoPhoneToolRegistry
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -127,7 +129,25 @@ class AutoPhoneService : Service() {
         }
         
         override fun screenshot(): String {
-            return errorJson("Screenshot requires MediaProjection permission")
+            return withToolRegistry(
+                operation = { registry ->
+                    ScreenshotEncoder.toJson(registry.screenshot())
+                },
+                onError = {
+                    // Two distinct failures land here and the user needs to know
+                    // which. withToolRegistry converts the IllegalStateException
+                    // from takeScreenshot() (no MediaProjection consent) into this
+                    // path, so check readiness to tell them apart.
+                    if (ScreenshotHub.isReady()) {
+                        errorJson("Accessibility service not enabled")
+                    } else {
+                        errorJson(
+                            "Screen capture not permitted. Open AutoPhone and allow " +
+                                "'Screen capture' in the Screen & Background card, then retry."
+                        )
+                    }
+                }
+            )
         }
         
         override fun findAndTap(text: String): String {
