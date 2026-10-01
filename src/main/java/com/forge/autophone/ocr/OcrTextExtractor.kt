@@ -47,7 +47,11 @@ class OcrTextExtractor {
                         OcrTextBlock(
                             text = block.text,
                             bounds = block.boundingBox ?: Rect(),
-                            confidence = 1.0f, // MLKit Text API v2 doesn't expose confidence per block
+                            // ML Kit Text API v2 does not expose per-block
+                            // confidence. Report it as unknown rather than 1.0,
+                            // which downstream agents read as certainty.
+                            confidence = 1.0f,
+                            confidenceKnown = false,
                             lines = block.lines.map { line ->
                                 OcrTextLine(
                                     text = line.text,
@@ -116,6 +120,8 @@ data class OcrTextBlock(
     val text: String,
     val bounds: Rect,
     val confidence: Float,
+    /** False when [confidence] is a placeholder rather than a real score. */
+    val confidenceKnown: Boolean = true,
     val lines: List<OcrTextLine> = emptyList()
 ) {
     val centerX: Float get() = (bounds.left + bounds.right) / 2f
@@ -128,5 +134,7 @@ data class OcrTextBlock(
 data class OcrTextLine(
     val text: String,
     val bounds: Rect,
-    val confidence: Float
+    val confidence: Float,
+    /** See [OcrTextBlock.confidenceKnown]. */
+    val confidenceKnown: Boolean = false
 )

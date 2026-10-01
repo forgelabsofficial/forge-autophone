@@ -33,6 +33,27 @@ interface IAutoPhoneService {
     String replyToNotification(String key, String text);
     boolean isNotificationListenerActive();
 
+    // OCR tools. Text recognition over a MediaProjection screenshot; reaches apps
+    // whose UI exposes no accessibility labels (games, canvas, image-heavy
+    // views). Requires screen-capture consent - see screenshot() for the error
+    // text returned when it is missing.
+    String ocrReadScreen();
+    String ocrFindText(String query);
+    String ocrFindAllText(String query);
+    boolean ocrTapText(String query);
+
+    // Icon-template tools. Register a PNG/JPEG (base64) as a named template,
+    // then find it on screen. Templates live only in this process memory and
+    // are lost on restart.
+    String registerIcon(String name, String base64Image);
+    String unregisterIcon(String name);
+    String listIcons();
+    String findIcon(String name, double threshold);
+    String findAllIcons(String name, double threshold, int maxMatches);
+    boolean isIconVisible(String name, double threshold);
+
+    // Screen context: current app + screen type from the accessibility tree.
+    String describeContext();
     // ── Schedule lifecycle (Forge OS → AutoPhone) ─────────────────────────────
     oneway void notifyScheduleStarted(String scheduleId, String planSummary);
     oneway void notifyScheduleCompleted(String scheduleId, boolean ok, String result);

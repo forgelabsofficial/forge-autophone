@@ -4,6 +4,8 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import com.forge.autophone.aidl.AidlToolMapper
+import com.forge.autophone.aidl.runBlockingIo
+import com.forge.autophone.aidl.toJson
 import com.forge.autophone.aidl.ScreenshotEncoder
 import com.forge.autophone.service.ScreenshotHub
 import com.forge.autophone.toolregistry.AutoPhoneToolRegistry
@@ -207,6 +209,113 @@ class AutoPhoneService : Service() {
         override fun isNotificationListenerActive(): Boolean {
             return com.forge.autophone.service.AutoPhoneNotificationListener.instance != null
         }
+
+// OCR. Registry exposes these as suspend; AIDL methods are synchronous,
+        // so bridge on an IO dispatcher. runBlocking is safe here because
+        // binder transactions already arrive off the main thread.
+
+        override fun ocrReadScreen(): String = runBlockingIo {
+            withToolRegistry(
+                operation = { registry ->
+                    val blocks = registry.ocrReadScreen()
+                    """{"ok":true,"blocks":${blocks.joinToString(",") { it.toJson() }}}"""
+                },
+                onError = { errorJson(captureOrServiceError()) }
+            )
+        }
+
+        override fun ocrFindText(query: String): String = runBlockingIo {
+            withToolRegistry(
+                operation = { registry ->
+                    val block = registry.ocrFindText(query)
+                        ?: return@withToolRegistry """{"ok":false,"error":"not found on screen"}"""
+                    """{"ok":true,"block":${block.toJson()}}"""
+                },
+                onError = { errorJson(captureOrServiceError()) }
+            )
+        }
+
+        override fun ocrFindAllText(query: String): String = runBlockingIo {
+            withToolRegistry(
+                operation = { registry ->
+                    val blocks = registry.ocrFindAllText(query)
+                    """{"ok":true,"blocks":${blocks.joinToString(",") { it.toJson() }}}"""
+                },
+                onError = { errorJson(captureOrServiceError()) }
+            )
+        }
+
+        override fun ocrTapText(query: String): Boolean = runBlockingIo {
+            withToolRegistry(
+                operation = { registry -> registry.ocrTapText(query) },
+                onError = { false }
+            )
+        }
+
+        // Icon templates. Registering does not need capture; finding does.
+
+        override fun registerIcon(name: String, base64Image: String): String =
+            withToolRegistry(
+                operation = { registry ->
+                    registry.registerIcon(name, base64Image)
+                    """{"ok":true,"name":"${name.jsonEscape()}"}"""
+                },
+                onError = { errorJson("Could not register icon - is base64Image valid PNG/JPEG?") }
+            )
+
+        override fun unregisterIcon(name: String): String =
+            withToolRegistry(
+                operation = { registry ->
+                    registry.unregisterIcon(name)
+                    """{"ok":true,"name":"${name.jsonEscape()}"}"""
+                },
+                onError = { errorJson("Could not unregister icon") }
+            )
+
+        override fun listIcons(): String =
+            withToolRegistry(
+                operation = { registry ->
+                    val names = registry.getRegisteredIcons()
+                    """{"ok":true,"icons":[${names.joinToString(",") { "\"${it.jsonEscape()}\"" }}]}"""
+                },
+                onError = { errorJson("Could not list icons") }
+            )
+
+        override fun findIcon(name: String, threshold: Double): String = runBlockingIo {
+            withToolRegistry(
+                operation = { registry ->
+                    val match = registry.findIcon(name, threshold)
+                        ?: return@withToolRegistry """{"ok":false,"error":"icon not found"}"""
+                    """{"ok":true,"match":${match.toJson()}}"""
+                },
+                onError = { errorJson(captureOrServiceError()) }
+            )
+        }
+
+        override fun findAllIcons(name: String, threshold: Double, maxMatches: Int): String =
+            runBlockingIo {
+                withToolRegistry(
+                    operation = { registry ->
+                        val matches = registry.findAllIcons(name, threshold, maxMatches)
+                        """{"ok":true,"matches":[${matches.joinToString(",") { it.toJson() }}]}"""
+                    },
+                    onError = { errorJson(captureOrServiceError()) }
+                )
+            }
+
+        override fun isIconVisible(name: String, threshold: Double): Boolean = runBlockingIo {
+            withToolRegistry(
+                operation = { registry -> registry.isIconVisible(name, threshold) },
+                onError = { false }
+            )
+        }
+
+        override fun describeContext(): String =
+            withToolRegistry(
+                operation = { registry -> registry.describeContextJson() },
+                onError = { errorJson("Accessibility service not enabled") }
+            )
+
         
         // ── Schedule lifecycle ────────────────────────────────────────────────
         
@@ -237,6 +346,20 @@ class AutoPhoneService : Service() {
         } catch (e: Exception) {
             """{"ok":true,"output":"$output"}"""
         }
+
+/**
+     * Distinguish the two failure modes the OCR/icon tools hit: no capture
+     * consent, versus the accessibility service being off. withToolRegistry
+     * funnels both here, so check readiness to tell the user which to fix.
+     */
+    private fun captureOrServiceError(): String =
+        if (ScreenshotHub.isReady()) {
+            "Accessibility service not enabled"
+        } else {
+            "Screen capture not permitted. Open AutoPhone and allow " +
+                "'Screen capture' in the Screen & Background card, then retry."
+        }
+
     }
     
     private fun errorJson(error: String): String {

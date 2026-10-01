@@ -17,6 +17,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Verify IAutoPhoneService.aidl matches the Forge OS copy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/check_aidl_sync.sh
+          ./scripts/check_aidl_sync.sh
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
