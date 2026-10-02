@@ -368,12 +368,13 @@ class AutoPhoneService : Service() {
         } catch (e: Exception) {
             """{"ok":true,"output":"$output"}"""
         }
+    }
 
-/**
-     * Distinguish the two failure modes the OCR/icon tools hit: no capture
-     * consent, versus the accessibility service being off. withToolRegistry
-     * funnels both here, so check readiness to tell the user which to fix.
-     */
+    /**
+    * Distinguish the two failure modes the OCR/icon tools hit: no capture
+    * consent, versus the accessibility service being off. withToolRegistry
+    * funnels both here, so check readiness to tell the user which to fix.
+    */
     private fun captureOrServiceError(): String =
         if (ScreenshotHub.isReady()) {
             "Accessibility service not enabled"
@@ -382,7 +383,6 @@ class AutoPhoneService : Service() {
                 "'Screen capture' in the Screen & Background card, then retry."
         }
 
-    }
     
     private fun errorJson(error: String): String {
         return """{"ok":false,"error":"${escape(error)}"}"""
