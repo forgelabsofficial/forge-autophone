@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import com.forge.autophone.aidl.AidlToolMapper
+import com.forge.autophone.aidl.jsonEscape
 import com.forge.autophone.aidl.runBlockingIo
 import com.forge.autophone.aidl.toJson
 import com.forge.autophone.aidl.ScreenshotEncoder
