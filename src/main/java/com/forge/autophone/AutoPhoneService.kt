@@ -57,6 +57,7 @@ class AutoPhoneService : Service() {
         } else {
             onError()
         }
+    }
 
     /**
      * Suspend counterpart to [withToolRegistry] for tools whose registry method
@@ -78,7 +79,6 @@ class AutoPhoneService : Service() {
         } else {
             onError()
         }
-    }
     }
     
     private val binder = object : IAutoPhoneService.Stub() {
