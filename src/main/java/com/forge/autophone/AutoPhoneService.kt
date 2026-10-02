@@ -57,6 +57,28 @@ class AutoPhoneService : Service() {
         } else {
             onError()
         }
+
+    /**
+     * Suspend counterpart to [withToolRegistry] for tools whose registry method
+     * is itself suspend (the OCR and icon-search paths). Kept separate so the
+     * synchronous callers keep a non-suspending signature.
+     */
+    private suspend fun <T> withToolRegistrySuspend(
+        operation: suspend (AutoPhoneToolRegistry) -> T,
+        onError: () -> T,
+    ): T {
+        val registry = getToolRegistry()
+        return if (registry != null) {
+            try {
+                operation(registry)
+            } catch (t: Throwable) {
+                Timber.e(t, "AutoPhone tool failed")
+                onError()
+            }
+        } else {
+            onError()
+        }
+    }
     }
     
     private val binder = object : IAutoPhoneService.Stub() {
@@ -215,7 +237,7 @@ class AutoPhoneService : Service() {
         // binder transactions already arrive off the main thread.
 
         override fun ocrReadScreen(): String = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry ->
                     val blocks = registry.ocrReadScreen()
                     """{"ok":true,"blocks":${blocks.joinToString(",") { it.toJson() }}}"""
@@ -225,10 +247,10 @@ class AutoPhoneService : Service() {
         }
 
         override fun ocrFindText(query: String): String = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry ->
                     val block = registry.ocrFindText(query)
-                        ?: return@withToolRegistry """{"ok":false,"error":"not found on screen"}"""
+                        ?: return@withToolRegistrySuspend """{"ok":false,"error":"not found on screen"}"""
                     """{"ok":true,"block":${block.toJson()}}"""
                 },
                 onError = { errorJson(captureOrServiceError()) }
@@ -236,7 +258,7 @@ class AutoPhoneService : Service() {
         }
 
         override fun ocrFindAllText(query: String): String = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry ->
                     val blocks = registry.ocrFindAllText(query)
                     """{"ok":true,"blocks":${blocks.joinToString(",") { it.toJson() }}}"""
@@ -246,7 +268,7 @@ class AutoPhoneService : Service() {
         }
 
         override fun ocrTapText(query: String): Boolean = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry -> registry.ocrTapText(query) },
                 onError = { false }
             )
@@ -282,10 +304,10 @@ class AutoPhoneService : Service() {
             )
 
         override fun findIcon(name: String, threshold: Double): String = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry ->
                     val match = registry.findIcon(name, threshold)
-                        ?: return@withToolRegistry """{"ok":false,"error":"icon not found"}"""
+                        ?: return@withToolRegistrySuspend """{"ok":false,"error":"icon not found"}"""
                     """{"ok":true,"match":${match.toJson()}}"""
                 },
                 onError = { errorJson(captureOrServiceError()) }
@@ -294,7 +316,7 @@ class AutoPhoneService : Service() {
 
         override fun findAllIcons(name: String, threshold: Double, maxMatches: Int): String =
             runBlockingIo {
-                withToolRegistry(
+                withToolRegistrySuspend(
                     operation = { registry ->
                         val matches = registry.findAllIcons(name, threshold, maxMatches)
                         """{"ok":true,"matches":[${matches.joinToString(",") { it.toJson() }}]}"""
@@ -304,7 +326,7 @@ class AutoPhoneService : Service() {
             }
 
         override fun isIconVisible(name: String, threshold: Double): Boolean = runBlockingIo {
-            withToolRegistry(
+            withToolRegistrySuspend(
                 operation = { registry -> registry.isIconVisible(name, threshold) },
                 onError = { false }
             )
