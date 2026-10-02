@@ -1,4 +1,5 @@
 package com.forge.autophone.toolregistry
+import com.forge.autophone.aidl.jsonEscape
 
 import android.graphics.Bitmap
 import com.forge.autophone.AutoPhoneAccessibilityService
@@ -357,11 +358,18 @@ class AutoPhoneToolRegistry(private val service: AutoPhoneAccessibilityService) 
         val c = getCurrentAppContext()
             ?: return """{"ok":false,"error":"no context available"}"""
         val patterns = c.uiPatterns.joinToString(",") { "\"${it.name}\"" }
-        val esc = { s: String -> s.toString().replace("\\", "\\\\").replace("\"", "\\\"") }
-        return "{\"ok\":true,\"packageName\":\"${esc(c.packageName)}\",\"appName\":\"${esc(c.appName)}\",
-            "\"activityName\":\"${esc(c.activityName)}\",\"screenType\":\"${c.screenType}\",
-            "\"patterns\":[$patterns],\"confidence\":${c.confidence}}"
+        return buildString {
+            append("{\"ok\":true")
+            append(",\"packageName\":\"").append(c.packageName.jsonEscape()).append("\"")
+            append(",\"appName\":\"").append(c.appName.jsonEscape()).append("\"")
+            append(",\"activityName\":\"").append(c.activityName.jsonEscape()).append("\"")
+            append(",\"screenType\":\"").append(c.screenType).append("\"")
+            append(",\"patterns\":[").append(patterns).append("]")
+            append(",\"confidence\":").append(c.confidence)
+            append("}")
+        }
     }
+
     /**
      * Get detected form fields with their types.
      */
